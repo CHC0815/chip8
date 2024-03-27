@@ -28,8 +28,9 @@ fn main() {
                     disassembler.disassemble();
                 }
                 "emu" => {
+                    buffer.resize(4096, 0);
                     println!("Emulating: {}", what);
-                    emulator::emulate(what);
+                    emulator::emulate(&buffer);
                 }
                 _ => println!("Unknown program. Use 'dis' or 'emu'"),
             }

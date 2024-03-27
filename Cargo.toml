@@ -2,6 +2,7 @@
 name = "chip8"
 version = "0.1.0"
 edition = "2021"
+authors = ["Conrad H. Carl"]
 
 [dependencies]
 ggez = "0.9.3"
