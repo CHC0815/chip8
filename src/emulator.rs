@@ -60,9 +60,11 @@ pub struct Register {
 pub struct Emulator {
     pub memory: [u8; 4096],
     pub graphics: Arc<Mutex<Graphics>>,
+    local_graphics: Graphics,
     pub pc: usize,
     stack: Vec<u16>,
     registers: [Register; 16],
+    index: u16,
     instruction: u16,
     instr: u16,
     x: u16,
@@ -76,9 +78,11 @@ impl Emulator {
         Emulator {
             memory: [0; 4096],
             graphics: graphics,
+            local_graphics: Graphics::new(),
             pc: 0,
             stack: Vec::new(),
             registers: [Register { v: 0 }; 16],
+            index: 0,
             instruction: 0,
             instr: 0,
             x: 0,
@@ -153,11 +157,120 @@ impl Emulator {
                     self.pc += 2;
                 }
             }
+            0x6 => {
+                // set Vx to nn
+                self.registers[self.x as usize].v = self.nn as u8;
+            }
+            0x7 => {
+                self.registers[self.x as usize].v += self.nn as u8;
+            }
+            0x8 => {
+                match (self.instruction & 0x000F) as u8 {
+                    0x0 => {
+                        // set Vx to Vy
+                        self.registers[self.x as usize].v = self.registers[self.y as usize].v;
+                    }
+                    0x1 => {
+                        // set Vx to Vx | Vy
+                        self.registers[self.x as usize].v |= self.registers[self.y as usize].v;
+                    }
+                    0x2 => {
+                        // set Vx to Vx & Vy
+                        self.registers[self.x as usize].v &= self.registers[self.y as usize].v;
+                    }
+                    0x3 => {
+                        // set Vx to Vx ^ Vy
+                        self.registers[self.x as usize].v ^= self.registers[self.y as usize].v;
+                    }
+                    0x4 => {
+                        // add Vx to Vy
+                        let result = self.registers[self.x as usize].v as u16 + self.registers[self.y as usize].v as u16;
+                        self.registers[self.x as usize].v = result as u8;
+                        self.registers[0xF].v = if result > 0xFF { 1 } else { 0 };
+                    }
+                    0x5 => {
+                        // subtract Vy from Vx
+                        let x = self.registers[self.x as usize].v;
+                        let y = self.registers[self.y as usize].v;
+                        self.registers[self.x as usize].v = x.wrapping_sub(y);
+                        self.registers[0xF].v = if x > y { 1 } else { 0 };
+                    }
+                    0x6 => {
+                        // TODO: configure this to be optional
+                        self.registers[self.x as usize].v = self.registers[self.y as usize].v;
+                        let flag = self.registers[self.x as usize].v & 0x1;
+                        self.registers[self.x as usize].v >>= 1;
+                        self.registers[0xF].v = flag;
+                    }
+                    0x7 => {
+                        // subtract Vx from Vy
+                        let x = self.registers[self.x as usize].v;
+                        let y = self.registers[self.y as usize].v;
+                        self.registers[self.x as usize].v = y.wrapping_sub(x);
+                        self.registers[0xF].v = if y > x { 1 } else { 0 };
+                    }
+                    0xE => {
+                        //TODO: configure this to be optional
+                        self.registers[self.x as usize].v = self.registers[self.y as usize].v;
+                        let flag = (self.registers[self.x as usize].v & 0x80) >> 7;
+                        self.registers[self.x as usize].v <<= 1;
+                        self.registers[0xF].v = flag;
+                    }
+                    _ => {
+                        println!("Unknown instruction: {:x}", self.instruction);
+                    } 
+                }
+            }
             0x9 => {
                 // skip next instruction if Vx != Vy
                 if self.registers[self.x as usize].v != self.registers[self.y as usize].v {
                     self.pc += 2;
                 }
+            }
+            0xA => {
+                // set index to nnn
+                self.index = self.nnn;
+            }
+            0xB => {
+                // TODO: configure this to be optional: BXNN -> jump to XNN + VX
+                // jump to nnn + V0
+                self.pc = self.nnn as usize + self.registers[0].v as usize;
+            }
+            0xC => {
+                // set Vx to random number & nn
+                let mut rng = Rand32::new(0);
+                self.registers[self.x as usize].v = rng.rand_u32() as u8 & self.nn as u8;
+            }
+            0xD => {
+                // display
+                self.local_graphics = self.graphics.lock().unwrap().clone();
+                let mut x = self.registers[self.x as usize].v as usize % 64;
+                let mut y = self.registers[self.y as usize].v as usize % 32;
+                self.registers[0xF].v = 0;
+                for i in 0..self.n {
+                    let sprite = self.memory[self.index as usize + i as usize];
+                    for i in 0..8 {
+                        let pixel = (sprite >> (7 - i)) & 0x1;
+                        let current = self.local_graphics.buffer[(x + i) + (y + i) * 32];
+                        if pixel == 1 && current == 1 {
+                            self.local_graphics.buffer[(x + i) + (y + i) * 32] = 0;
+                            self.registers[0xF].v = 1;
+                        }
+                        if pixel == 1 && current == 0 {
+                            self.local_graphics.buffer[(x + i) + (y + i) * 32] = 1;
+                        }
+                        if y + i >= 32 {
+                            break;
+                        }
+                        x += 1;
+                    }
+                    y += 1;
+                    if y >= 32 {
+                        break;
+                    }
+                }
+
+                self.graphics.lock().unwrap().buffer = self.local_graphics.buffer;
             }
             _ => {
                 println!("Unknown instruction: {:x}", self.instruction);
