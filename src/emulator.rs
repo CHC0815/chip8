@@ -289,6 +289,43 @@ impl Emulator {
                         // set sound timer to Vx
                         self.sound_timer = self.registers[self.x as usize].v as u16;
                     }
+                    0x1E => {
+                        // add Vx to index
+                        self.index += self.registers[self.x as usize].v as u16;
+                        // TODO: VF is set to 1 when there is a range overflow (I + Vx > 0xFFF)
+                    }
+                    0x0A => {
+                        let key_pressed = false;
+                        let key_code = 0;
+                        if key_pressed {
+                            self.registers[self.x as usize].v = key_code;
+                        } else {
+                            self.pc -= 2;
+                        }
+                    }
+                    0x29 => {
+                        // set index to location of sprite for digit Vx
+                        self.index = self.registers[self.x as usize].v as u16 * 5;
+                    }
+                    0x33 => {
+                        // store BCD representation of Vx in memory locations I, I+1, I+2
+                        let value = self.registers[self.x as usize].v;
+                        self.memory[self.index as usize] = value / 100;
+                        self.memory[self.index as usize + 1] = (value / 10) % 10;
+                        self.memory[self.index as usize + 2] = value % 10;
+                    }
+                    0x55 => {
+                        // store V0 to Vx in memory starting at I
+                        for i in 0..self.x {
+                            self.memory[self.index as usize + i as usize] = self.registers[i as usize].v;
+                        }
+                    }
+                    0x65 => {
+                        // fill V0 to Vx with memory starting at I
+                        for i in 0..self.x {
+                            self.registers[i as usize].v = self.memory[self.index as usize + i as usize];
+                        }
+                    }
                     _ => {
                         println!("Unknown instruction: {:x}", self.instruction);
                     }
