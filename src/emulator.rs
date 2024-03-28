@@ -72,6 +72,8 @@ pub struct Emulator {
     n: u16,
     nn: u16,
     nnn: u16,
+    delay_timer: u16,
+    sound_timer: u16,
 }
 impl Emulator {
     pub fn new(graphics: Arc<Mutex<Graphics>>) -> Self {
@@ -90,7 +92,8 @@ impl Emulator {
             n: 0,
             nn: 0,
             nnn: 0,
-
+            delay_timer: 0,
+            sound_timer: 0,
         }
     }
     pub fn load(&mut self, program: &[u8]) {
@@ -271,6 +274,25 @@ impl Emulator {
                 }
 
                 self.graphics.lock().unwrap().buffer = self.local_graphics.buffer;
+            }
+            0xF => {
+                match self.nn {
+                    0x07 => {
+                        // set Vx to delay timer
+                        self.registers[self.x as usize].v = self.delay_timer as u8;
+                    }
+                    0x15 => {
+                        // set delay timer to Vx
+                        self.delay_timer = self.registers[self.x as usize].v as u16;
+                    }
+                    0x18 => {
+                        // set sound timer to Vx
+                        self.sound_timer = self.registers[self.x as usize].v as u16;
+                    }
+                    _ => {
+                        println!("Unknown instruction: {:x}", self.instruction);
+                    }
+                }
             }
             _ => {
                 println!("Unknown instruction: {:x}", self.instruction);
