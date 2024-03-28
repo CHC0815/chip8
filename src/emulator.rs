@@ -106,7 +106,7 @@ impl Emulator {
         let first_byte = self.memory[self.pc];
         let second_byte = self.memory[self.pc + 1];
         self.pc += 2;
-        self.instruction = u16::from_be_bytes([first_byte, second_byte]);
+        self.instruction = ((first_byte as u16) << 8) | second_byte as u16;
     }
     fn decode(&mut self) {
         self.instr = self.instruction & 0xF000 >> 12;
