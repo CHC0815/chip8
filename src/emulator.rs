@@ -53,18 +53,23 @@ pub fn emulate(program: &[u8]) {
     event::run(ctx, event_loop, app);
 }
 
+#[derive(Clone, Copy, Debug)]
+pub struct Register {
+    pub v: u8,
+}
 pub struct Emulator {
     pub memory: [u8; 4096],
     pub graphics: Arc<Mutex<Graphics>>,
     pub pc: usize,
     stack: Vec<u16>,
+    registers: [Register; 16],
     instruction: u16,
     instr: u16,
-    X: u16,
-    Y: u16,
-    N: u16,
-    NN: u16,
-    NNN: u16,
+    x: u16,
+    y: u16,
+    n: u16,
+    nn: u16,
+    nnn: u16,
 }
 impl Emulator {
     pub fn new(graphics: Arc<Mutex<Graphics>>) -> Self {
@@ -73,13 +78,14 @@ impl Emulator {
             graphics: graphics,
             pc: 0,
             stack: Vec::new(),
+            registers: [Register { v: 0 }; 16],
             instruction: 0,
             instr: 0,
-            X: 0,
-            Y: 0,
-            N: 0,
-            NN: 0,
-            NNN: 0,
+            x: 0,
+            y: 0,
+            n: 0,
+            nn: 0,
+            nnn: 0,
 
         }
     }
@@ -97,16 +103,16 @@ impl Emulator {
     }
     fn decode(&mut self) {
         self.instr = self.instruction & 0xF000 >> 12;
-        self.X = ((self.instruction & 0x0F00) >> 8) as u16;
-        self.Y = ((self.instruction & 0x00F0) >> 4) as u16;
-        self.N = (self.instruction & 0x000F) as u16;
-        self.NN = (self.instruction & 0x00FF) as u16;
-        self.NNN = self.instruction & 0x0FFF as u16;
+        self.x = ((self.instruction & 0x0F00) >> 8) as u16;
+        self.y = ((self.instruction & 0x00F0) >> 4) as u16;
+        self.n = (self.instruction & 0x000F) as u16;
+        self.nn = (self.instruction & 0x00FF) as u16;
+        self.nnn = self.instruction & 0x0FFF as u16;
     }
     fn execute(&mut self) {
         match self.instr {
             0x0 => {
-                match self.NNN {
+                match self.nnn {
                     0x0E0 => {
                         // clear screen
                         self.clear_screen();
@@ -122,12 +128,36 @@ impl Emulator {
             }
             0x1 => {
                 // jump
-                self.pc = self.NNN as usize;
+                self.pc = self.nnn as usize;
             }
             0x2 => {
                 // call subroutine
                 self.stack.push(self.pc as u16);
-                self.pc = self.NNN as usize;
+                self.pc = self.nnn as usize;
+            }
+            0x3 => {
+                // skip next instruction if Vx == nn
+                if self.registers[self.x as usize].v == self.nn as u8 {
+                    self.pc += 2;
+                }
+            }
+            0x4 => {
+                // skip next instruction if Vx != nn
+                if self.registers[self.x as usize].v != self.nn as u8 {
+                    self.pc += 2;
+                }
+            }
+            0x5 => {
+                // skip next instruction if Vx == Vy
+                if self.registers[self.x as usize].v == self.registers[self.y as usize].v {
+                    self.pc += 2;
+                }
+            }
+            0x9 => {
+                // skip next instruction if Vx != Vy
+                if self.registers[self.x as usize].v != self.registers[self.y as usize].v {
+                    self.pc += 2;
+                }
             }
             _ => {
                 println!("Unknown instruction: {:x}", self.instruction);
