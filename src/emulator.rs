@@ -46,7 +46,7 @@ pub fn emulate(program: &[u8]) {
         let mut emulator = Emulator::new(graphics_buffer.clone());
         emulator.load(program);
         thread::spawn(move || {
-            //emulator.run();
+            emulator.run();
         });
     };
 
@@ -56,28 +56,90 @@ pub fn emulate(program: &[u8]) {
 pub struct Emulator {
     pub memory: [u8; 4096],
     pub graphics: Arc<Mutex<Graphics>>,
+    pub pc: usize,
+    stack: Vec<u16>,
+    instruction: u16,
+    instr: u16,
+    X: u16,
+    Y: u16,
+    N: u16,
+    NN: u16,
+    NNN: u16,
 }
 impl Emulator {
     pub fn new(graphics: Arc<Mutex<Graphics>>) -> Self {
         Emulator {
             memory: [0; 4096],
-            graphics,
+            graphics: graphics,
+            pc: 0,
+            stack: Vec::new(),
+            instruction: 0,
+            instr: 0,
+            X: 0,
+            Y: 0,
+            N: 0,
+            NN: 0,
+            NNN: 0,
+
         }
     }
     pub fn load(&mut self, program: &[u8]) {
         self.memory = program.try_into().expect("Program should be 4096 bytes");
     }
+    fn fetch(&mut self){
+        if self.pc >= 4096 {
+            panic!("Program counter out of bounds");
+        }
+        let first_byte = self.memory[self.pc];
+        let second_byte = self.memory[self.pc + 1];
+        self.pc += 2;
+        self.instruction = u16::from_be_bytes([first_byte, second_byte]);
+    }
+    fn decode(&mut self) {
+        self.instr = self.instruction & 0xF000 >> 12;
+        self.X = ((self.instruction & 0x0F00) >> 8) as u16;
+        self.Y = ((self.instruction & 0x00F0) >> 4) as u16;
+        self.N = (self.instruction & 0x000F) as u16;
+        self.NN = (self.instruction & 0x00FF) as u16;
+        self.NNN = self.instruction & 0x0FFF as u16;
+    }
+    fn execute(&mut self) {
+        match self.instr {
+            0x0 => {
+                match self.NNN {
+                    0x0E0 => {
+                        // clear screen
+                        self.clear_screen();
+                    }
+                    0x0EE => {
+                        // return from subroutine
+                        self.pc = self.stack.pop().unwrap() as usize;
+                    }
+                    _ => {
+                        println!("Unknown instruction: {:x}", self.instruction);
+                    }
+                }
+            }
+            0x1 => {
+                // jump
+                self.pc = self.NNN as usize;
+            }
+            0x2 => {
+                // call subroutine
+                self.stack.push(self.pc as u16);
+                self.pc = self.NNN as usize;
+            }
+            _ => {
+                println!("Unknown instruction: {:x}", self.instruction);
+            }
+        }
+    }
     pub fn run(&mut self) {
-        let mut seed: [u8; 8] = [0; 8];
-        getrandom::getrandom(&mut seed[..]).expect("Could not create RNG seed");
-        let mut rng = Rand32::new(u64::from_ne_bytes(seed));
         loop {
-            self.set_pixel(
-                rng.rand_range(0..32) as usize,
-                rng.rand_range(0..64) as usize,
-                1,
-            );
-            thread::sleep(Duration::from_millis(100));
+            self.fetch();
+            self.decode();
+            self.execute();
+            // thread::sleep(Duration::from_millis(1));
         }
     }
     pub fn set_pixel(&mut self, x: usize, y: usize, value: u8) {
