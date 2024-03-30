@@ -41,7 +41,7 @@ pub fn emulate(program: &[u8]) {
         .build()
         .expect("Could not create ggez context.");
 
-    let graphics_buffer = Arc::new(Mutex::new(Graphics::new()));
+    let graphics_buffer = Arc::new(Mutex::new(Graphics::new())); // TODO: use RwLock instead of Mutex
 
     let app = EmulatorApp::new(&mut ctx, graphics_buffer.clone());
 

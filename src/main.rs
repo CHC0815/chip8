@@ -4,7 +4,7 @@ use std::{
     io::Read,
 };
 
-use chip8::{consts::FONT_BASE_ADDRESS, disassembler};
+use chip8::consts::FONT_BASE_ADDRESS;
 use chip8::emulator;
 use chip8::font::FONT;
 
@@ -12,9 +12,8 @@ fn main() {
     let args: Vec<String> = env::args().collect();
 
     match args.len() {
-        3 => {
-            let prog = &args[1];
-            let what = &args[2];
+        2 => {
+            let what = &args[1];
 
             let mut file = File::open(what).expect("Could not open file");
             let metadata = fs::metadata(what).expect("Could not read metadata");
@@ -34,21 +33,8 @@ fn main() {
             // copy font to 050-09F
             buffer[FONT_BASE_ADDRESS..FONT_BASE_ADDRESS + 80].copy_from_slice(&FONT);
 
-            println!("{:?}", buffer);
-
-            match prog.as_str() {
-                "dis" => {
-                    println!("Disassembling: {}", what);
-                    let mut disassembler = disassembler::Disassembler::new();
-                    disassembler.load(&buffer);
-                    disassembler.disassemble();
-                }
-                "emu" => {
-                    println!("Emulating: {}", what);
-                    emulator::emulate(&buffer);
-                }
-                _ => println!("Unknown program. Use 'dis' or 'emu'"),
-            }
+            println!("Emulating: {}", what);
+            emulator::emulate(&buffer);
         }
         _ => println!("Too few or too many arguments"),
     }
