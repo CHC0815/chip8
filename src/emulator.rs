@@ -4,17 +4,14 @@ use std::{
 };
 
 use ggez::{
-    conf,
-    event::{self, EventHandler},
-    graphics::{self, Color, Mesh},
-    Context, ContextBuilder,
+    conf, event::{self, EventHandler}, graphics::{self, Color, Mesh}, input::keyboard::KeyCode, Context, ContextBuilder
 };
 
 use oorandom::Rand32;
 
 use std::time::Duration;
 
-use crate::consts::{FONT_BASE_ADDRESS, SLEEP_MICROS};
+use crate::consts::{FONT_BASE_ADDRESS, KEYS, SLEEP_MICROS};
 
 #[derive(Clone)]
 pub struct Graphics {
@@ -26,6 +23,10 @@ impl Graphics {
             buffer: [0; 64 * 32],
         }
     }
+}
+
+pub struct KeyState {
+    pub key: Option<u8>,
 }
 
 pub fn emulate(program: &[u8]) {
@@ -41,12 +42,14 @@ pub fn emulate(program: &[u8]) {
         .build()
         .expect("Could not create ggez context.");
 
-    let graphics_buffer = Arc::new(Mutex::new(Graphics::new())); // TODO: use RwLock instead of Mutex
+    // RwLock would not be better because we have only one reader
+    let graphics_buffer = Arc::new(Mutex::new(Graphics::new()));
+    let key_buffer = Arc::new(Mutex::new(KeyState { key: None }));
 
-    let app = EmulatorApp::new(&mut ctx, graphics_buffer.clone());
+    let app = EmulatorApp::new(&mut ctx, graphics_buffer.clone(), key_buffer.clone());
 
     let _emu_thread = {
-        let mut emulator = Emulator::new(graphics_buffer.clone());
+        let mut emulator = Emulator::new(graphics_buffer.clone(), key_buffer.clone());
         emulator.load(program);
         thread::spawn(move || {
             emulator.run();
@@ -63,6 +66,7 @@ pub struct Register {
 pub struct Emulator {
     pub memory: [u8; 4096],
     pub graphics: Arc<Mutex<Graphics>>,
+    pub key_buffer: Arc<Mutex<KeyState>>,
     local_graphics: Graphics,
     pub pc: usize,
     stack: Vec<u16>,
@@ -79,10 +83,11 @@ pub struct Emulator {
     sound_timer: u16,
 }
 impl Emulator {
-    pub fn new(graphics: Arc<Mutex<Graphics>>) -> Self {
+    pub fn new(graphics: Arc<Mutex<Graphics>>, key_buffer: Arc<Mutex<KeyState>>) -> Self {
         Emulator {
             memory: [0; 4096],
             graphics: graphics,
+            key_buffer: key_buffer,
             local_graphics: Graphics::new(),
             pc: 0x200,
             stack: Vec::new(),
@@ -304,9 +309,9 @@ impl Emulator {
                         // TODO: VF is set to 1 when there is a range overflow (I + Vx > 0xFFF)
                     }
                     0x0A => {
-                        let key_pressed = false;
-                        let key_code = 0;
+                        let key_pressed = self.key_buffer.lock().unwrap().key.is_some();
                         if key_pressed {
+                            let key_code = self.key_buffer.lock().unwrap().key.unwrap();
                             self.registers[self.x as usize].v = key_code;
                         } else {
                             self.pc -= 2;
@@ -377,20 +382,35 @@ impl Emulator {
 
 struct EmulatorApp {
     graphics: Arc<Mutex<Graphics>>,
+    keybuffer: Arc<Mutex<KeyState>>,
     local_graphics: Graphics,
 }
 
 impl EmulatorApp {
-    pub fn new(_ctx: &mut Context, graphics: Arc<Mutex<Graphics>>) -> Self {
+    pub fn new(_ctx: &mut Context, graphics: Arc<Mutex<Graphics>>, key_buffer: Arc<Mutex<KeyState>>) -> Self {
         EmulatorApp {
             graphics,
+            keybuffer: key_buffer,
             local_graphics: Graphics::new(),
         }
     }
 }
 
 impl EventHandler for EmulatorApp {
-    fn update(&mut self, _ctx: &mut Context) -> Result<(), ggez::GameError> {
+    fn update(&mut self, ctx: &mut Context) -> Result<(), ggez::GameError> {
+        let pressed_key = {
+            KEYS.iter().find(|key| ctx.keyboard.is_key_pressed(**key))
+        };
+
+        if let Some(key) = pressed_key {
+            let mut key_buffer = self.keybuffer.lock().unwrap();
+            key_buffer.key = Some(key_index(key.to_owned()));
+        } else {
+            let mut key_buffer = self.keybuffer.lock().unwrap();
+            key_buffer.key = None;
+        }
+
+
         self.local_graphics = self.graphics.lock().unwrap().clone();
         Ok(())
     }
@@ -415,5 +435,29 @@ impl EventHandler for EmulatorApp {
             canvas.draw(&mesh, graphics::DrawParam::default());
         }
         canvas.finish(ctx)
+    }
+}
+
+
+fn key_index(key: KeyCode) -> u8 {
+    match key {
+        KeyCode::Key1 => 0x0,
+        KeyCode::Key2 => 0x1,
+        KeyCode::Key3 => 0x2,
+        KeyCode::Key4 => 0x3,
+        KeyCode::Q => 0x4,
+        KeyCode::W => 0x5,
+        KeyCode::E => 0x6,
+        KeyCode::R => 0x7,
+        KeyCode::A => 0x8,
+        KeyCode::S => 0x9,
+        KeyCode::D => 0xA,
+        KeyCode::F => 0xB,
+        KeyCode::Y => 0xC, // german layout
+        KeyCode::X => 0xD,
+        KeyCode::C => 0xE,
+        KeyCode::V => 0xF,
+
+        _ => panic!("Unknown key pressed: {:?}", key),
     }
 }
