@@ -14,7 +14,7 @@ use oorandom::Rand32;
 
 use std::time::Duration;
 
-use crate::consts::SLEEP_MICROS;
+use crate::consts::{FONT_BASE_ADDRESS, SLEEP_MICROS};
 
 #[derive(Clone)]
 pub struct Graphics {
@@ -261,29 +261,24 @@ impl Emulator {
             0xD => {
                 // display
                 self.local_graphics = self.graphics.lock().unwrap().clone();
-                let mut x = self.registers[self.x as usize].v as usize % 64;
-                let mut y = self.registers[self.y as usize].v as usize % 32;
+                let x = self.registers[self.x as usize].v as usize % 64;
+                let y = self.registers[self.y as usize].v as usize % 32;
                 self.registers[0xF].v = 0;
-                for i in 0..self.n {
-                    let sprite = self.memory[self.index as usize + i as usize];
-                    for i in 0..8 {
-                        let pixel = (sprite >> (7 - i)) & 0x1;
-                        let current = self.local_graphics.buffer[(x + i) + (y + i) * 32];
-                        if pixel == 1 && current == 1 {
-                            self.local_graphics.buffer[(x + i) + (y + i) * 32] = 0;
-                            self.registers[0xF].v = 1;
-                        }
-                        if pixel == 1 && current == 0 {
-                            self.local_graphics.buffer[(x + i) + (y + i) * 32] = 1;
-                        }
-                        if y + i >= 32 {
-                            break;
-                        }
-                        x += 1;
-                    }
-                    y += 1;
-                    if y >= 32 {
-                        break;
+                
+                let mut sprite = [0u8; 15];
+                for s in self.index..(self.index + self.n) {
+                    sprite[(s - self.index) as usize] = self.memory[s as usize];
+                }
+
+                for row in 0..self.n as usize {
+                    let rev = [7,6,5,4,3,2,1,0];
+                    for col in 0..8 {
+                        let xx = row + y;
+                        let yy = rev[col] + x;
+                        let old_pixel = self.local_graphics.buffer[xx + yy * 64] != 0;
+                        let pixel = sprite[row] & (1 << col) != 0;
+                        let new_pixel = pixel ^ old_pixel;
+                        self.local_graphics.buffer[xx + yy * 64] = if new_pixel { 1 } else { 0 };
                     }
                 }
 
@@ -319,7 +314,7 @@ impl Emulator {
                     }
                     0x29 => {
                         // set index to location of sprite for digit Vx
-                        self.index = self.registers[self.x as usize].v as u16 * 5 + 0x50;
+                        self.index = self.registers[self.x as usize].v as u16 * 5 + FONT_BASE_ADDRESS as u16;
                     }
                     0x33 => {
                         // store BCD representation of Vx in memory locations I, I+1, I+2
