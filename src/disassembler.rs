@@ -21,7 +21,7 @@ impl Disassembler {
         print!("{:04X} {:02X} ", self.pc, code);
         match instr {
             0x06 => {
-                let reg = code & 0x0F;
+                let _reg = code & 0x0F;
                 print!("LEL");
             }
             _ => {

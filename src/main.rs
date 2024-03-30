@@ -4,8 +4,9 @@ use std::{
     io::Read,
 };
 
-use chip8::disassembler;
+use chip8::{consts::FONT_BASE_ADDRESS, disassembler};
 use chip8::emulator;
+use chip8::font::FONT;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -30,6 +31,9 @@ fn main() {
             for i in 0..0x200 {
                 buffer[i] = 0; // Fill the first 512 bytes with 0
             }
+            // copy font to 050-09F
+            buffer[FONT_BASE_ADDRESS..=FONT_BASE_ADDRESS + 80].copy_from_slice(&FONT);
+
             println!("{:?}", buffer);
 
             match prog.as_str() {

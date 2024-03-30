@@ -14,7 +14,7 @@ use oorandom::Rand32;
 
 use std::time::Duration;
 
-const SLEEP_MICROS: u64 = 1500;
+use crate::consts::SLEEP_MICROS;
 
 #[derive(Clone)]
 pub struct Graphics {
@@ -319,7 +319,7 @@ impl Emulator {
                     }
                     0x29 => {
                         // set index to location of sprite for digit Vx
-                        self.index = self.registers[self.x as usize].v as u16 * 5;
+                        self.index = self.registers[self.x as usize].v as u16 * 5 + 0x50;
                     }
                     0x33 => {
                         // store BCD representation of Vx in memory locations I, I+1, I+2
