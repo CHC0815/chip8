@@ -31,8 +31,8 @@ impl Graphics {
 pub fn emulate(program: &[u8]) {
     //setup game engine
     let mut c = conf::Conf::new();
-    c.window_mode.width = 320.0;
-    c.window_mode.height = 640.0;
+    c.window_mode.width = 640.0;
+    c.window_mode.height = 320.0;
     c.window_setup.title = "CHIP 8 Emulator".to_string();
     c.window_setup.vsync = true;
 
@@ -402,8 +402,8 @@ impl EventHandler for EmulatorApp {
         let mut mesh: Mesh;
 
         for (i, pixel) in self.local_graphics.buffer.iter().enumerate() {
-            let x = i % 32;
-            let y = i / 32;
+            let x = i % 64;
+            let y = i / 64;
             let color = if *pixel == 0 {
                 Color::BLACK
             } else {
