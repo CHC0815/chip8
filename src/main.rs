@@ -17,8 +17,20 @@ fn main() {
 
             let mut file = File::open(what).expect("Could not open file");
             let metadata = fs::metadata(what).expect("Could not read metadata");
-            let mut buffer = vec![0; metadata.len() as usize];
+            if metadata.len() > (4096 - 0x200) {
+                // Program memory is 4096 bytes, but the first 512 bytes are reserved for the interpreter
+                panic!("Program File too large");
+            }
+            let mut buffer = vec![0; 4096];
             file.read(&mut buffer).expect("buffer overflow");
+
+            for i in (0..buffer.len() - 0x200).rev() {
+                buffer.swap(i, i + 512);
+            }
+            for i in 0..0x200 {
+                buffer[i] = 0; // Fill the first 512 bytes with 0
+            }
+            println!("{:?}", buffer);
 
             match prog.as_str() {
                 "dis" => {
@@ -28,7 +40,6 @@ fn main() {
                     disassembler.disassemble();
                 }
                 "emu" => {
-                    buffer.resize(4096, 0);
                     println!("Emulating: {}", what);
                     emulator::emulate(&buffer);
                 }
