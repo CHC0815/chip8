@@ -1,13 +1,12 @@
 use std::{
     sync::{Arc, Mutex},
     thread,
-    time::Duration,
 };
 
 use ggez::{
-    conf::{self},
+    conf,
     event::{self, EventHandler},
-    graphics::{self, Color},
+    graphics::{self, Color, Mesh},
     Context, ContextBuilder,
 };
 
@@ -81,7 +80,7 @@ impl Emulator {
             memory: [0; 4096],
             graphics: graphics,
             local_graphics: Graphics::new(),
-            pc: 0,
+            pc: 0x200,
             stack: Vec::new(),
             registers: [Register { v: 0 }; 16],
             index: 0,
@@ -109,12 +108,13 @@ impl Emulator {
         self.instruction = ((first_byte as u16) << 8) | second_byte as u16;
     }
     fn decode(&mut self) {
-        self.instr = self.instruction & 0xF000 >> 12;
+        self.instr = (self.instruction & 0xF000) >> 12;
         self.x = ((self.instruction & 0x0F00) >> 8) as u16;
         self.y = ((self.instruction & 0x00F0) >> 4) as u16;
         self.n = (self.instruction & 0x000F) as u16;
         self.nn = (self.instruction & 0x00FF) as u16;
         self.nnn = self.instruction & 0x0FFF as u16;
+        dbg!("instr: {:x}, x: {:x}, y: {:x}, n: {:x}, nn: {:x}, nnn: {:x}", self.instr, self.x, self.y, self.n, self.nn, self.nnn);
     }
     fn execute(&mut self) {
         match self.instr {
@@ -129,7 +129,7 @@ impl Emulator {
                         self.pc = self.stack.pop().unwrap() as usize;
                     }
                     _ => {
-                        println!(
+                        panic!(
                             "Unknown instruction: 0x{:04x} at 0x{:04x}",
                             self.instruction,
                             self.pc - 2
@@ -169,7 +169,8 @@ impl Emulator {
                 self.registers[self.x as usize].v = self.nn as u8;
             }
             0x7 => {
-                self.registers[self.x as usize].v += self.nn as u8;
+                // add nn to Vx
+                let _ = self.registers[self.x as usize].v.wrapping_add(self.nn as u8);
             }
             0x8 => {
                 match (self.instruction & 0x000F) as u8 {
@@ -225,7 +226,7 @@ impl Emulator {
                         self.registers[0xF].v = flag;
                     }
                     _ => {
-                        println!(
+                        panic!(
                             "Unknown instruction: 0x{:04x} at 0x{:04x}",
                             self.instruction,
                             self.pc - 2
@@ -338,7 +339,7 @@ impl Emulator {
                         }
                     }
                     _ => {
-                        println!(
+                        panic!(
                             "Unknown instruction: 0x{:04x} at 0x{:04x}",
                             self.instruction,
                             self.pc - 2
@@ -347,7 +348,7 @@ impl Emulator {
                 }
             }
             _ => {
-                println!(
+                panic!(
                     "Unknown instruction: 0x{:04x} at 0x{:04x}",
                     self.instruction,
                     self.pc - 2
@@ -397,8 +398,7 @@ impl EventHandler for EmulatorApp {
         let mut canvas = graphics::Canvas::from_frame(ctx, Color::BLACK);
 
         let mut rect = graphics::Rect::new(0 as f32 * 10.0, 0 as f32 * 10.0, 10.0, 10.0);
-        let mut mesh =
-            graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::fill(), rect, Color::BLACK)?;
+        let mut mesh: Mesh;
 
         for (i, pixel) in self.local_graphics.buffer.iter().enumerate() {
             let x = i % 32;
