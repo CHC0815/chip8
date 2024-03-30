@@ -378,10 +378,6 @@ impl Emulator {
             // println!("Cycle took: {:?}", start.elapsed());
         }
     }
-    pub fn set_pixel(&mut self, x: usize, y: usize, value: u8) {
-        let mut state = self.graphics.lock().unwrap();
-        state.buffer[x + y * 32] = value;
-    }
     pub fn clear_screen(&mut self) {
         let mut state = self.graphics.lock().unwrap();
         state.buffer = [0; 64 * 32];

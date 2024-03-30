@@ -8,4 +8,3 @@ authors = ["Conrad H. Carl"]
 getrandom = "0.2.12"
 ggez = "0.9.3"
 oorandom = "11.1.3"
-speedy2d = "2.1.0"
