@@ -273,8 +273,8 @@ impl Emulator {
                 for row in 0..self.n as usize {
                     let rev = [7,6,5,4,3,2,1,0];
                     for col in 0..8 {
-                        let xx = row + y;
-                        let yy = rev[col] + x;
+                        let xx = rev[col] + x;
+                        let yy = row + y;
                         let old_pixel = self.local_graphics.buffer[xx + yy * 64] != 0;
                         let pixel = sprite[row] & (1 << col) != 0;
                         let new_pixel = pixel ^ old_pixel;
