@@ -12,6 +12,10 @@ use ggez::{
 
 use oorandom::Rand32;
 
+use std::time::Duration;
+
+const SLEEP_MICROS: u64 = 1500;
+
 #[derive(Clone)]
 pub struct Graphics {
     buffer: [u8; 64 * 32],
@@ -114,7 +118,7 @@ impl Emulator {
         self.n = (self.instruction & 0x000F) as u16;
         self.nn = (self.instruction & 0x00FF) as u16;
         self.nnn = self.instruction & 0x0FFF as u16;
-        dbg!("instr: {:x}, x: {:x}, y: {:x}, n: {:x}, nn: {:x}, nnn: {:x}", self.instr, self.x, self.y, self.n, self.nn, self.nnn);
+        // println!("instr: {:x}, x: {:x}, y: {:x}, n: {:x}, nn: {:x}, nnn: {:x}", self.instr, self.x, self.y, self.n, self.nn, self.nnn);
     }
     fn execute(&mut self) {
         match self.instr {
@@ -358,10 +362,12 @@ impl Emulator {
     }
     pub fn run(&mut self) {
         loop {
+            //let start = std::time::Instant::now();
             self.fetch();
             self.decode();
             self.execute();
-            // thread::sleep(Duration::from_millis(1));
+            thread::sleep(Duration::from_micros(SLEEP_MICROS));
+            //let duration = start.elapsed();
         }
     }
     pub fn set_pixel(&mut self, x: usize, y: usize, value: u8) {
