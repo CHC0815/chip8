@@ -4,7 +4,11 @@ use std::{
 };
 
 use ggez::{
-    conf, event::{self, EventHandler}, graphics::{self, Color, Mesh}, input::keyboard::KeyCode, Context, ContextBuilder
+    conf,
+    event::{self, EventHandler},
+    graphics::{self, Color, Mesh},
+    input::keyboard::KeyCode,
+    Context, ContextBuilder,
 };
 
 use oorandom::Rand32;
@@ -36,6 +40,7 @@ pub fn emulate(program: &[u8]) {
     c.window_mode.height = 320.0;
     c.window_setup.title = "CHIP 8 Emulator".to_string();
     c.window_setup.vsync = true;
+    c.backend = conf::Backend::Metal;
 
     let (mut ctx, event_loop) = ContextBuilder::new("CHIP8", "Conrad H. Carl")
         .default_conf(c)
@@ -179,7 +184,9 @@ impl Emulator {
             }
             0x7 => {
                 // add nn to Vx
-                let _ = self.registers[self.x as usize].v.wrapping_add(self.nn as u8);
+                let _ = self.registers[self.x as usize]
+                    .v
+                    .wrapping_add(self.nn as u8);
             }
             0x8 => {
                 match (self.instruction & 0x000F) as u8 {
@@ -269,14 +276,14 @@ impl Emulator {
                 let x = self.registers[self.x as usize].v as usize % 64;
                 let y = self.registers[self.y as usize].v as usize % 32;
                 self.registers[0xF].v = 0;
-                
+
                 let mut sprite = [0u8; 15];
                 for s in self.index..(self.index + self.n) {
                     sprite[(s - self.index) as usize] = self.memory[s as usize];
                 }
 
                 for row in 0..self.n as usize {
-                    let rev = [7,6,5,4,3,2,1,0];
+                    let rev = [7, 6, 5, 4, 3, 2, 1, 0];
                     for col in 0..8 {
                         let xx = rev[col] + x;
                         let yy = row + y;
@@ -319,7 +326,8 @@ impl Emulator {
                     }
                     0x29 => {
                         // set index to location of sprite for digit Vx
-                        self.index = self.registers[self.x as usize].v as u16 * 5 + FONT_BASE_ADDRESS as u16;
+                        self.index =
+                            self.registers[self.x as usize].v as u16 * 5 + FONT_BASE_ADDRESS as u16;
                     }
                     0x33 => {
                         // store BCD representation of Vx in memory locations I, I+1, I+2
@@ -362,12 +370,12 @@ impl Emulator {
     }
     pub fn run(&mut self) {
         loop {
-            //let start = std::time::Instant::now();
+            // let start = std::time::Instant::now();
             self.fetch();
             self.decode();
             self.execute();
             thread::sleep(Duration::from_micros(SLEEP_MICROS));
-            //let duration = start.elapsed();
+            // println!("Cycle took: {:?}", start.elapsed());
         }
     }
     pub fn set_pixel(&mut self, x: usize, y: usize, value: u8) {
@@ -387,7 +395,11 @@ struct EmulatorApp {
 }
 
 impl EmulatorApp {
-    pub fn new(_ctx: &mut Context, graphics: Arc<Mutex<Graphics>>, key_buffer: Arc<Mutex<KeyState>>) -> Self {
+    pub fn new(
+        _ctx: &mut Context,
+        graphics: Arc<Mutex<Graphics>>,
+        key_buffer: Arc<Mutex<KeyState>>,
+    ) -> Self {
         EmulatorApp {
             graphics,
             keybuffer: key_buffer,
@@ -398,9 +410,7 @@ impl EmulatorApp {
 
 impl EventHandler for EmulatorApp {
     fn update(&mut self, ctx: &mut Context) -> Result<(), ggez::GameError> {
-        let pressed_key = {
-            KEYS.iter().find(|key| ctx.keyboard.is_key_pressed(**key))
-        };
+        let pressed_key = { KEYS.iter().find(|key| ctx.keyboard.is_key_pressed(**key)) };
 
         if let Some(key) = pressed_key {
             let mut key_buffer = self.keybuffer.lock().unwrap();
@@ -409,7 +419,6 @@ impl EventHandler for EmulatorApp {
             let mut key_buffer = self.keybuffer.lock().unwrap();
             key_buffer.key = None;
         }
-
 
         self.local_graphics = self.graphics.lock().unwrap().clone();
         Ok(())
@@ -437,7 +446,6 @@ impl EventHandler for EmulatorApp {
         canvas.finish(ctx)
     }
 }
-
 
 fn key_index(key: KeyCode) -> u8 {
     match key {
