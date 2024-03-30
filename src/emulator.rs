@@ -99,7 +99,7 @@ impl Emulator {
     pub fn load(&mut self, program: &[u8]) {
         self.memory = program.try_into().expect("Program should be 4096 bytes");
     }
-    fn fetch(&mut self){
+    fn fetch(&mut self) {
         if self.pc >= 4096 {
             panic!("Program counter out of bounds");
         }
@@ -129,7 +129,11 @@ impl Emulator {
                         self.pc = self.stack.pop().unwrap() as usize;
                     }
                     _ => {
-                        println!("Unknown instruction: {:x}", self.instruction);
+                        println!(
+                            "Unknown instruction: 0x{:04x} at 0x{:04x}",
+                            self.instruction,
+                            self.pc - 2
+                        );
                     }
                 }
             }
@@ -187,7 +191,8 @@ impl Emulator {
                     }
                     0x4 => {
                         // add Vx to Vy
-                        let result = self.registers[self.x as usize].v as u16 + self.registers[self.y as usize].v as u16;
+                        let result = self.registers[self.x as usize].v as u16
+                            + self.registers[self.y as usize].v as u16;
                         self.registers[self.x as usize].v = result as u8;
                         self.registers[0xF].v = if result > 0xFF { 1 } else { 0 };
                     }
@@ -220,8 +225,12 @@ impl Emulator {
                         self.registers[0xF].v = flag;
                     }
                     _ => {
-                        println!("Unknown instruction: {:x}", self.instruction);
-                    } 
+                        println!(
+                            "Unknown instruction: 0x{:04x} at 0x{:04x}",
+                            self.instruction,
+                            self.pc - 2
+                        );
+                    }
                 }
             }
             0x9 => {
@@ -317,22 +326,32 @@ impl Emulator {
                     0x55 => {
                         // store V0 to Vx in memory starting at I
                         for i in 0..self.x {
-                            self.memory[self.index as usize + i as usize] = self.registers[i as usize].v;
+                            self.memory[self.index as usize + i as usize] =
+                                self.registers[i as usize].v;
                         }
                     }
                     0x65 => {
                         // fill V0 to Vx with memory starting at I
                         for i in 0..self.x {
-                            self.registers[i as usize].v = self.memory[self.index as usize + i as usize];
+                            self.registers[i as usize].v =
+                                self.memory[self.index as usize + i as usize];
                         }
                     }
                     _ => {
-                        println!("Unknown instruction: {:x}", self.instruction);
+                        println!(
+                            "Unknown instruction: 0x{:04x} at 0x{:04x}",
+                            self.instruction,
+                            self.pc - 2
+                        );
                     }
                 }
             }
             _ => {
-                println!("Unknown instruction: {:x}", self.instruction);
+                println!(
+                    "Unknown instruction: 0x{:04x} at 0x{:04x}",
+                    self.instruction,
+                    self.pc - 2
+                );
             }
         }
     }
