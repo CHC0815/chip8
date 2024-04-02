@@ -1,19 +1,7 @@
-use std::{
-    sync::{Arc, Mutex},
-    thread,
-};
-
-use ggez::{
-    conf,
-    event::{self, EventHandler},
-    graphics::{self, Color, Mesh},
-    input::keyboard::KeyCode,
-    Context, ContextBuilder,
-};
-
 use oorandom::Rand32;
+use sdl2::{event::Event, keyboard::Keycode, render::Canvas, video::Window, Sdl};
 
-use std::time::Duration;
+use std::{thread, time::Duration};
 
 use crate::consts::{FONT_BASE_ADDRESS, KEYS, SLEEP_MICROS};
 
@@ -33,47 +21,90 @@ pub struct KeyState {
     pub key: Option<u8>,
 }
 
+fn find_sdl_gl_driver() -> Option<u32> {
+    for (index, item) in sdl2::render::drivers().enumerate() {
+        if item.name == "opengl" {
+            return Some(index as u32);
+        }
+    }
+    None
+}
 pub fn emulate(program: &[u8]) {
-    //setup game engine
-    let mut c = conf::Conf::new();
-    c.window_mode.width = 640.0;
-    c.window_mode.height = 320.0;
-    c.window_setup.title = "CHIP 8 Emulator".to_string();
-    c.window_setup.vsync = true;
-    c.backend = conf::Backend::Metal;
+    let sdl_context = sdl2::init().unwrap();
 
-    let (mut ctx, event_loop) = ContextBuilder::new("CHIP8", "Conrad H. Carl")
-        .default_conf(c)
-        .build()
-        .expect("Could not create ggez context.");
+    let mut display = Display::new(&sdl_context);
+    let mut event_pump = sdl_context.event_pump().unwrap();
 
-    // RwLock would not be better because we have only one reader
-    let graphics_buffer = Arc::new(Mutex::new(Graphics::new()));
-    let key_buffer = Arc::new(Mutex::new(KeyState { key: None }));
-
-    let app = EmulatorApp::new(&mut ctx, graphics_buffer.clone(), key_buffer.clone());
-
-    let _emu_thread = {
-        let mut emulator = Emulator::new(graphics_buffer.clone(), key_buffer.clone());
-        emulator.load(program);
-        thread::spawn(move || {
-            emulator.run();
-        });
-    };
-
-    event::run(ctx, event_loop, app);
+    let mut emulator = Emulator::new();
+    emulator.load(program);
+    display.canvas.present();
+    'run: loop {
+        for event in event_pump.poll_iter() {
+            match event {
+                Event::Quit { .. }
+                | Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                } => break 'run,
+                _ => {}
+            }
+        }
+        emulator.run(2, &mut display);
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
 pub struct Register {
     pub v: u8,
 }
-pub struct Emulator {
-    pub memory: [u8; 4096],
-    pub graphics: Arc<Mutex<Graphics>>,
-    pub key_buffer: Arc<Mutex<KeyState>>,
-    local_graphics: Graphics,
-    pub pc: usize,
+
+struct Display {
+    canvas: Canvas<Window>,
+}
+
+impl Display {
+    fn new(context: &Sdl) -> Self {
+        let video_subsystem = context.video().unwrap();
+        let window = video_subsystem
+            .window("CHIP 8", 640, 320)
+            .opengl()
+            .position_centered()
+            .build()
+            .unwrap();
+        let canvas = window
+            .into_canvas()
+            .index(find_sdl_gl_driver().unwrap())
+            .build()
+            .unwrap();
+        Display { canvas: canvas }
+    }
+    fn draw(&mut self, graphics: &Graphics) {
+        for y in 0..32 {
+            for x in 0..64 {
+                let idx = x + y * 64;
+                let color = if graphics.buffer[idx] == 0 { 0 } else { 255 };
+                if color == 0 {
+                    self.canvas
+                        .set_draw_color(sdl2::pixels::Color::RGB(0, 0, 0));
+                } else {
+                    self.canvas
+                        .set_draw_color(sdl2::pixels::Color::RGB(255, 255, 255));
+                }
+
+                self.canvas
+                    .fill_rect(sdl2::rect::Rect::new(x as i32 * 10, y as i32 * 10, 10, 10))
+                    .unwrap();
+            }
+        }
+        self.canvas.present();
+    }
+}
+
+struct Emulator {
+    memory: [u8; 4096],
+    graphics: Graphics,
+    key_buffer: KeyState,
+    pc: usize,
     stack: Vec<u16>,
     registers: [Register; 16],
     index: u16,
@@ -88,12 +119,11 @@ pub struct Emulator {
     sound_timer: u16,
 }
 impl Emulator {
-    pub fn new(graphics: Arc<Mutex<Graphics>>, key_buffer: Arc<Mutex<KeyState>>) -> Self {
+    pub fn new() -> Self {
         Emulator {
             memory: [0; 4096],
-            graphics: graphics,
-            key_buffer: key_buffer,
-            local_graphics: Graphics::new(),
+            graphics: Graphics::new(),
+            key_buffer: KeyState { key: None },
             pc: 0x200,
             stack: Vec::new(),
             registers: [Register { v: 0 }; 16],
@@ -130,13 +160,14 @@ impl Emulator {
         self.nnn = self.instruction & 0x0FFF as u16;
         // println!("instr: {:x}, x: {:x}, y: {:x}, n: {:x}, nn: {:x}, nnn: {:x}", self.instr, self.x, self.y, self.n, self.nn, self.nnn);
     }
-    fn execute(&mut self) {
+    fn execute(&mut self, display: &mut Display) {
         match self.instr {
             0x0 => {
                 match self.nnn {
                     0x0E0 => {
                         // clear screen
                         self.clear_screen();
+                        display.draw(&self.graphics);
                     }
                     0x0EE => {
                         // return from subroutine
@@ -272,7 +303,6 @@ impl Emulator {
             }
             0xD => {
                 // display
-                self.local_graphics = self.graphics.lock().unwrap().clone();
                 let x = self.registers[self.x as usize].v as usize % 64;
                 let y = self.registers[self.y as usize].v as usize % 32;
                 self.registers[0xF].v = 0;
@@ -287,14 +317,13 @@ impl Emulator {
                     for col in 0..8 {
                         let xx = rev[col] + x;
                         let yy = row + y;
-                        let old_pixel = self.local_graphics.buffer[xx + yy * 64] != 0;
+                        let old_pixel = self.graphics.buffer[xx + yy * 64] != 0;
                         let pixel = sprite[row] & (1 << col) != 0;
                         let new_pixel = pixel ^ old_pixel;
-                        self.local_graphics.buffer[xx + yy * 64] = if new_pixel { 1 } else { 0 };
+                        self.graphics.buffer[xx + yy * 64] = if new_pixel { 1 } else { 0 };
                     }
                 }
-
-                self.graphics.lock().unwrap().buffer = self.local_graphics.buffer;
+                display.draw(&self.graphics);
             }
             0xF => {
                 match self.nn {
@@ -316,9 +345,9 @@ impl Emulator {
                         // TODO: VF is set to 1 when there is a range overflow (I + Vx > 0xFFF)
                     }
                     0x0A => {
-                        let key_pressed = self.key_buffer.lock().unwrap().key.is_some();
+                        let key_pressed = self.key_buffer.key.is_some();
                         if key_pressed {
-                            let key_code = self.key_buffer.lock().unwrap().key.unwrap();
+                            let key_code = self.key_buffer.key.unwrap();
                             // println!("key pressed: {}", key_code);
                             self.registers[self.x as usize].v = key_code;
                         } else {
@@ -369,100 +398,17 @@ impl Emulator {
             }
         }
     }
-    pub fn run(&mut self) {
-        loop {
+    pub fn run(&mut self, step: usize, display: &mut Display) {
+        for _ in 0..step {
             // let start = std::time::Instant::now();
             self.fetch();
             self.decode();
-            self.execute();
+            self.execute(display);
             thread::sleep(Duration::from_micros(SLEEP_MICROS));
             // println!("Cycle took: {:?}", start.elapsed());
         }
     }
     pub fn clear_screen(&mut self) {
-        let mut state = self.graphics.lock().unwrap();
-        state.buffer = [0; 64 * 32];
-    }
-}
-
-struct EmulatorApp {
-    graphics: Arc<Mutex<Graphics>>,
-    keybuffer: Arc<Mutex<KeyState>>,
-    local_graphics: Graphics,
-}
-
-impl EmulatorApp {
-    pub fn new(
-        _ctx: &mut Context,
-        graphics: Arc<Mutex<Graphics>>,
-        key_buffer: Arc<Mutex<KeyState>>,
-    ) -> Self {
-        EmulatorApp {
-            graphics,
-            keybuffer: key_buffer,
-            local_graphics: Graphics::new(),
-        }
-    }
-}
-
-impl EventHandler for EmulatorApp {
-    fn update(&mut self, ctx: &mut Context) -> Result<(), ggez::GameError> {
-        let pressed_key = { KEYS.iter().find(|key| ctx.keyboard.is_key_pressed(**key)) };
-
-        if let Some(key) = pressed_key {
-            let mut key_buffer = self.keybuffer.lock().unwrap();
-            key_buffer.key = Some(key_index(key.to_owned()));
-        } else {
-            let mut key_buffer = self.keybuffer.lock().unwrap();
-            key_buffer.key = None;
-        }
-
-        self.local_graphics = self.graphics.lock().unwrap().clone();
-        Ok(())
-    }
-
-    fn draw(&mut self, ctx: &mut Context) -> Result<(), ggez::GameError> {
-        let mut canvas = graphics::Canvas::from_frame(ctx, Color::BLACK);
-
-        let mut rect = graphics::Rect::new(0 as f32 * 10.0, 0 as f32 * 10.0, 10.0, 10.0);
-        let mut mesh: Mesh;
-
-        for (i, pixel) in self.local_graphics.buffer.iter().enumerate() {
-            let x = i % 64;
-            let y = i / 64;
-            let color = if *pixel == 0 {
-                Color::BLACK
-            } else {
-                Color::WHITE
-            };
-            rect.x = x as f32 * 10.0;
-            rect.y = y as f32 * 10.0;
-            mesh = graphics::Mesh::new_rectangle(ctx, graphics::DrawMode::fill(), rect, color)?;
-            canvas.draw(&mesh, graphics::DrawParam::default());
-        }
-        canvas.finish(ctx)
-    }
-}
-
-fn key_index(key: KeyCode) -> u8 {
-    match key {
-        KeyCode::Key1 => 0x0,
-        KeyCode::Key2 => 0x1,
-        KeyCode::Key3 => 0x2,
-        KeyCode::Key4 => 0x3,
-        KeyCode::Q => 0x4,
-        KeyCode::W => 0x5,
-        KeyCode::E => 0x6,
-        KeyCode::R => 0x7,
-        KeyCode::A => 0x8,
-        KeyCode::S => 0x9,
-        KeyCode::D => 0xA,
-        KeyCode::F => 0xB,
-        KeyCode::Y => 0xC, // german layout
-        KeyCode::X => 0xD,
-        KeyCode::C => 0xE,
-        KeyCode::V => 0xF,
-
-        _ => panic!("Unknown key pressed: {:?}", key),
+        self.graphics.buffer = [0; 64 * 32];
     }
 }
