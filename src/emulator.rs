@@ -319,6 +319,7 @@ impl Emulator {
                         let key_pressed = self.key_buffer.lock().unwrap().key.is_some();
                         if key_pressed {
                             let key_code = self.key_buffer.lock().unwrap().key.unwrap();
+                            // println!("key pressed: {}", key_code);
                             self.registers[self.x as usize].v = key_code;
                         } else {
                             self.pc -= 2;
