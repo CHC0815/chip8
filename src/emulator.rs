@@ -46,6 +46,35 @@ pub fn emulate(program: &[u8]) {
                     keycode: Some(Keycode::Escape),
                     ..
                 } => break 'run,
+                Event::KeyDown {
+                    keycode: Some(keycode),
+                    ..
+                } => {
+                    let key = KEYS.iter().position(|&x| x == keycode);
+                    match key {
+                        Some(k) => {
+                            println!("LELLELE {}", k);
+                            emulator.key_buffer.key = Some(k as u8);
+                        }
+                        None => {}
+                    }
+                }
+                Event::KeyUp {
+                    keycode: Some(keycode),
+                    ..
+                } => {
+                    let key = KEYS.iter().position(|&x| x == keycode);
+                    match key {
+                        Some(key) => {
+                            if let Some(k) = emulator.key_buffer.key {
+                                if k == key as u8 {
+                                    emulator.key_buffer.key = None;
+                                }
+                            }
+                        }
+                        None => {}
+                    }
+                }
                 _ => {}
             }
         }
@@ -348,7 +377,7 @@ impl Emulator {
                         let key_pressed = self.key_buffer.key.is_some();
                         if key_pressed {
                             let key_code = self.key_buffer.key.unwrap();
-                            // println!("key pressed: {}", key_code);
+                            println!("key pressed: {}", key_code);
                             self.registers[self.x as usize].v = key_code;
                         } else {
                             self.pc -= 2;
