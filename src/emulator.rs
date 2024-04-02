@@ -30,14 +30,22 @@ fn find_sdl_gl_driver() -> Option<u32> {
     None
 }
 pub fn emulate(program: &[u8]) {
-    let sdl_context = sdl2::init().unwrap();
+    let sdl_context = sdl2::init().expect("sdl2 should initialize");
 
+    let timer = sdl_context
+        .timer()
+        .expect("sdl2 context should have a timer");
     let mut display = Display::new(&sdl_context);
-    let mut event_pump = sdl_context.event_pump().unwrap();
+    let mut event_pump = sdl_context
+        .event_pump()
+        .expect("sdl2 context should have an event pump");
 
     let mut emulator = Emulator::new();
     emulator.load(program);
     display.canvas.present();
+
+    let mut before = timer.ticks64();
+    let mut next: u64 = 0;
     'run: loop {
         for event in event_pump.poll_iter() {
             match event {
@@ -53,7 +61,6 @@ pub fn emulate(program: &[u8]) {
                     let key = KEYS.iter().position(|&x| x == keycode);
                     match key {
                         Some(k) => {
-                            println!("LELLELE {}", k);
                             emulator.key_buffer.key = Some(k as u8);
                         }
                         None => {}
@@ -77,6 +84,17 @@ pub fn emulate(program: &[u8]) {
                 }
                 _ => {}
             }
+        }
+        before = timer.ticks64();
+        if before >= next {
+            if emulator.delay_timer > 0 {
+                println!("Delay timer: {}", emulator.delay_timer);
+                emulator.delay_timer -= 1;
+            }
+            if emulator.sound_timer > 0 {
+                emulator.sound_timer -= 1;
+            }
+            next = before + 1000 / 60;
         }
         emulator.run(2, &mut display);
     }
@@ -374,6 +392,7 @@ impl Emulator {
                         // TODO: VF is set to 1 when there is a range overflow (I + Vx > 0xFFF)
                     }
                     0x0A => {
+                        println!("Waiting for key press");
                         let key_pressed = self.key_buffer.key.is_some();
                         if key_pressed {
                             let key_code = self.key_buffer.key.unwrap();
