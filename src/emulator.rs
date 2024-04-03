@@ -96,7 +96,10 @@ pub fn emulate(program: &[u8]) {
             }
             next = before + 1000 / 60;
         }
-        emulator.run(2, &mut display);
+        const STEPS: usize = 2;
+        for _ in 0..STEPS {
+            emulator.run(Some(&mut display));
+        }
     }
 }
 
@@ -105,12 +108,12 @@ pub struct Register {
     pub v: u8,
 }
 
-struct Display {
+pub struct Display {
     canvas: Canvas<Window>,
 }
 
 impl Display {
-    fn new(context: &Sdl) -> Self {
+    pub fn new(context: &Sdl) -> Self {
         let video_subsystem = context.video().unwrap();
         let window = video_subsystem
             .window("CHIP 8", 640, 320)
@@ -147,13 +150,13 @@ impl Display {
     }
 }
 
-struct Emulator {
-    memory: [u8; 4096],
+pub struct Emulator {
+    pub memory: [u8; 4096],
     graphics: Graphics,
     key_buffer: KeyState,
-    pc: usize,
-    stack: Vec<u16>,
-    registers: [Register; 16],
+    pub pc: usize,
+    pub stack: Vec<u16>,
+    pub registers: [Register; 16],
     index: u16,
     instruction: u16,
     instr: u16,
@@ -207,14 +210,16 @@ impl Emulator {
         self.nnn = self.instruction & 0x0FFF as u16;
         // println!("instr: {:x}, x: {:x}, y: {:x}, n: {:x}, nn: {:x}, nnn: {:x}", self.instr, self.x, self.y, self.n, self.nn, self.nnn);
     }
-    fn execute(&mut self, display: &mut Display) {
+    fn execute(&mut self, display: Option<&mut Display>) {
         match self.instr {
             0x0 => {
                 match self.nnn {
                     0x0E0 => {
                         // clear screen
                         self.clear_screen();
-                        display.draw(&self.graphics);
+                        if let Some(display) = display {
+                            display.draw(&self.graphics);
+                        }
                     }
                     0x0EE => {
                         // return from subroutine
@@ -370,7 +375,9 @@ impl Emulator {
                         self.graphics.buffer[xx + yy * 64] = if new_pixel { 1 } else { 0 };
                     }
                 }
-                display.draw(&self.graphics);
+                if let Some(display) = display {
+                    display.draw(&self.graphics);
+                }
             }
             0xF => {
                 match self.nn {
@@ -446,15 +453,13 @@ impl Emulator {
             }
         }
     }
-    pub fn run(&mut self, step: usize, display: &mut Display) {
-        for _ in 0..step {
-            // let start = std::time::Instant::now();
-            self.fetch();
-            self.decode();
-            self.execute(display);
-            thread::sleep(Duration::from_micros(SLEEP_MICROS));
-            // println!("Cycle took: {:?}", start.elapsed());
-        }
+    pub fn run(&mut self, display: Option<&mut Display>) {
+        // let start = std::time::Instant::now();
+        self.fetch();
+        self.decode();
+        self.execute(display);
+        thread::sleep(Duration::from_micros(SLEEP_MICROS));
+        // println!("Cycle took: {:?}", start.elapsed());
     }
     pub fn clear_screen(&mut self) {
         self.graphics.buffer = [0; 64 * 32];
