@@ -21,6 +21,11 @@
 
 ## About the Project
 
+The Chip8 emulator is a hobby project to learn more about emulators.
+It's written in [Rust](https://www.rust-lang.org/) and uses [SDL2](https://www.libsdl.org/) for rendering and user input.
+
+It's still WIP.
+
 ## Getting Started
 
 ### Requirements
