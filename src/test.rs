@@ -82,3 +82,48 @@ fn test_opcode_4_x_nn_neg() {
         "PC should be 0x202 after opcode 0x4000"
     );
 }
+
+#[test]
+fn test_opcode_5_x_y_pos() {
+    // test 5XY0 opcode (skip if Vx == Vy)
+    let program = create_buffer(vec![0x51, 0x20, 0xFF, 0xFF, 0x53, 0x40]); // V1 == V2 and V3 == V4
+    let mut emulator = Emulator::new();
+    emulator.load(&program);
+
+    assert!(emulator.pc == 0x200, "PC should initially be 0x200");
+    emulator.run(None);
+    assert!(
+        emulator.pc == 0x204,
+        "PC should be 0x204 after opcode 0x5120"
+    );
+    emulator.registers[3].v = 0x4;
+    emulator.registers[4].v = 0x4;
+    emulator.run(None);
+    assert!(
+        emulator.pc == 0x208,
+        "PC should be 0x208 after opcode 0x5340"
+    );
+}
+
+#[test]
+fn test_opcode_5_x_y_neg() {
+    // test 5XY0 opcode (skip if Vx == Vy)
+    let program = create_buffer(vec![0x51, 0x20, 0x53, 0x40]); // V1 == V2 and V3 == V4
+    let mut emulator = Emulator::new();
+    emulator.load(&program);
+
+    assert!(emulator.pc == 0x200, "PC should initially be 0x200");
+    emulator.registers[1].v = 0x1;
+    emulator.run(None);
+    assert!(
+        emulator.pc == 0x202,
+        "PC should be 0x202 after opcode 0x5120"
+    );
+    emulator.registers[3].v = 0x4;
+    emulator.registers[4].v = 0x5;
+    emulator.run(None);
+    assert!(
+        emulator.pc == 0x204,
+        "PC should be 0x204 after opcode 0x5340"
+    );
+}
