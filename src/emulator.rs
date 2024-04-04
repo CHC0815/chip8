@@ -368,9 +368,9 @@ impl Emulator {
                     sprite[(s - self.index) as usize] = self.memory[s as usize];
                 }
 
-                for row in 0..self.n as usize {
+                for (row, _) in sprite.iter().enumerate().take(self.n as usize) {
                     let rev = [7, 6, 5, 4, 3, 2, 1, 0];
-                    for col in 0..8 {
+                    for (col, _) in rev.iter().enumerate() {
                         let xx = rev[col] + x;
                         let yy = row + y;
                         let old_pixel = self.graphics.buffer[xx + yy * 64] != 0;

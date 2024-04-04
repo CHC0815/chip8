@@ -15,14 +15,17 @@ fn main() {
 
             let what = &args[2];
 
-            let mut file = File::open(what).expect("Could not open file");
+            let file = File::open(what).expect("Could not open file");
             let metadata = fs::metadata(what).expect("Could not read metadata");
             if metadata.len() > (4096 - 0x200) {
                 // Program memory is 4096 bytes, but the first 512 bytes are reserved for the interpreter
                 panic!("Program File too large");
             }
-            let mut buffer = vec![0; 4096];
-            file.read(&mut buffer).expect("buffer overflow");
+            let mut buffer = vec![0; metadata.len() as usize];
+            file.take(metadata.len())
+                .read_exact(&mut buffer)
+                .expect("buffer overflow");
+            buffer.resize(4096, 0);
 
             prep_buffer(&mut buffer);
 
