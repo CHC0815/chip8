@@ -44,7 +44,7 @@ pub fn emulate(program: &[u8]) {
     emulator.load(program);
     display.canvas.present();
 
-    let mut before = timer.ticks64();
+    let mut before;
     let mut next: u64 = 0;
     'run: loop {
         for event in event_pump.poll_iter() {
@@ -126,7 +126,7 @@ impl Display {
             .index(find_sdl_gl_driver().unwrap())
             .build()
             .unwrap();
-        Display { canvas: canvas }
+        Display { canvas }
     }
     fn draw(&mut self, graphics: &Graphics) {
         for y in 0..32 {
