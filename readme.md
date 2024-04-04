@@ -17,6 +17,7 @@
     <li><a href="#usage">Usage</a></li>
     <li><a href="#roms">ROMs</a></li>
     <li><a href="#manpage">MAN Page</a></li>
+    <li><a href="mentions">Mentions</a></li>
   </ol>
 </details>
 
@@ -84,3 +85,7 @@ Most of the roms are from [https://github.com/Timendus/chip8-test-suite](https:/
 ```sh
 man -l chip8.1
 ```
+
+## Mentions
+
+[Cowgod's Chip8 Technical Reference v1.0](http://devernay.free.fr/hacks/chip8/C8TECH10.HTM)
