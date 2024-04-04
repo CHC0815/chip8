@@ -6,7 +6,7 @@ pub mod disassembler;
 pub mod emulator;
 pub mod font;
 
-pub fn prep_buffer(buffer: &mut Vec<u8>) {
+pub fn prep_buffer(buffer: &mut [u8]) {
     for i in (0..buffer.len() - 0x200).rev() {
         buffer.swap(i, i + 512);
     }

@@ -31,11 +31,11 @@ impl Disassembler {
     }
     fn disassemble_opcode(&self, opcode: u16) -> String {
         let instr = (opcode & 0xF000) >> 12;
-        let x = ((opcode & 0x0F00) >> 8) as u16;
-        let y = ((opcode & 0x00F0) >> 4) as u16;
-        let n = (opcode & 0x000F) as u16;
-        let nn = (opcode & 0x00FF) as u16;
-        let nnn = opcode & 0x0FFF as u16;
+        let x = (opcode & 0x0F00) >> 8;
+        let y = (opcode & 0x00F0) >> 4;
+        let n = opcode & 0x000F;
+        let nn = opcode & 0x00FF;
+        let nnn = opcode & 0x0FFF;
         match instr {
             0x0 => {
                 match nnn {

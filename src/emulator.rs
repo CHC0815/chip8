@@ -16,6 +16,11 @@ impl Graphics {
         }
     }
 }
+impl Default for Graphics {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 pub struct KeyState {
     pub key: Option<u8>,
@@ -59,11 +64,8 @@ pub fn emulate(program: &[u8]) {
                     ..
                 } => {
                     let key = KEYS.iter().position(|&x| x == keycode);
-                    match key {
-                        Some(k) => {
-                            emulator.key_buffer.key = Some(k as u8);
-                        }
-                        None => {}
+                    if let Some(k) = key {
+                        emulator.key_buffer.key = Some(k as u8);
                     }
                 }
                 Event::KeyUp {
@@ -71,15 +73,12 @@ pub fn emulate(program: &[u8]) {
                     ..
                 } => {
                     let key = KEYS.iter().position(|&x| x == keycode);
-                    match key {
-                        Some(key) => {
-                            if let Some(k) = emulator.key_buffer.key {
-                                if k == key as u8 {
-                                    emulator.key_buffer.key = None;
-                                }
+                    if let Some(key) = key {
+                        if let Some(k) = emulator.key_buffer.key {
+                            if k == key as u8 {
+                                emulator.key_buffer.key = None;
                             }
                         }
-                        None => {}
                     }
                 }
                 _ => {}
@@ -168,6 +167,11 @@ pub struct Emulator {
     delay_timer: u16,
     sound_timer: u16,
 }
+impl Default for Emulator {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 impl Emulator {
     pub fn new() -> Self {
         Emulator {
@@ -203,11 +207,11 @@ impl Emulator {
     }
     fn decode(&mut self) {
         self.instr = (self.instruction & 0xF000) >> 12;
-        self.x = ((self.instruction & 0x0F00) >> 8) as u16;
-        self.y = ((self.instruction & 0x00F0) >> 4) as u16;
-        self.n = (self.instruction & 0x000F) as u16;
-        self.nn = (self.instruction & 0x00FF) as u16;
-        self.nnn = self.instruction & 0x0FFF as u16;
+        self.x = (self.instruction & 0x0F00) >> 8;
+        self.y = (self.instruction & 0x00F0) >> 4;
+        self.n = self.instruction & 0x000F;
+        self.nn = self.instruction & 0x00FF;
+        self.nnn = self.instruction & 0x0FFF;
         // println!("instr: {:x}, x: {:x}, y: {:x}, n: {:x}, nn: {:x}, nnn: {:x}", self.instr, self.x, self.y, self.n, self.nn, self.nnn);
     }
     fn execute(&mut self, display: Option<&mut Display>) {
