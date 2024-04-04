@@ -17,7 +17,7 @@
     <li><a href="#usage">Usage</a></li>
     <li><a href="#roms">ROMs</a></li>
     <li><a href="#manpage">MAN Page</a></li>
-    <li><a href="mentions">Mentions</a></li>
+    <li><a href="#mentions">Mentions</a></li>
   </ol>
 </details>
 
