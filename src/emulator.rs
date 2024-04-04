@@ -157,7 +157,7 @@ pub struct Emulator {
     pub pc: usize,
     pub stack: Vec<u16>,
     pub registers: [Register; 16],
-    index: u16,
+    pub index: u16,
     instruction: u16,
     instr: u16,
     x: u16,
@@ -423,14 +423,14 @@ impl Emulator {
                     }
                     0x55 => {
                         // store V0 to Vx in memory starting at I
-                        for i in 0..self.x {
+                        for i in 0..=self.x {
                             self.memory[self.index as usize + i as usize] =
                                 self.registers[i as usize].v;
                         }
                     }
                     0x65 => {
                         // fill V0 to Vx with memory starting at I
-                        for i in 0..self.x {
+                        for i in 0..=self.x {
                             self.registers[i as usize].v =
                                 self.memory[self.index as usize + i as usize];
                         }
