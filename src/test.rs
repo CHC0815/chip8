@@ -178,3 +178,31 @@ fn test_opcode_7_x_nn() {
         "VF should be 0x0 after opcode 0x71FF"
     )
 }
+
+#[test]
+fn test_opcode_f_x_33() {
+    // test FX33 opcode (store BCD representation of Vx in memory locations I, I+1, I+2)
+    let program = create_buffer(vec![0x60, 0x12, 0xF0, 0x33]);
+    let mut emulator = Emulator::new();
+    emulator.load(&program);
+
+    emulator.run(None); // load 0x12 (18) into V0
+    emulator.run(None); // store BCD representation of V0 in memory locations I, I+1, I+2
+    assert!(
+        emulator.memory[emulator.index as usize] == 0,
+        "Memory at I should be 0x0 after opcode 0xF033 {:?}",
+        emulator.index
+    );
+    assert!(
+        emulator.memory[emulator.index as usize + 1] == 1,
+        "Memory at I+1 should be 0x1 after opcode 0xF033"
+    );
+    assert!(
+        emulator.memory[emulator.index as usize + 2] == 8,
+        "Memory at I+2 should be 0x2 after opcode 0xF033 {:?}, 0x{:0X?} 0x{:0X?} 0x{:0X?}",
+        emulator.index,
+        emulator.memory[emulator.index as usize + 0],
+        emulator.memory[emulator.index as usize + 1],
+        emulator.memory[emulator.index as usize + 2]
+    );
+}
