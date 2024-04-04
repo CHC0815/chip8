@@ -127,3 +127,27 @@ fn test_opcode_5_x_y_neg() {
         "PC should be 0x204 after opcode 0x5340"
     );
 }
+
+#[test]
+fn test_opcode_6_x_nn() {
+    // test 6XNN opcode (set Vx = NN)
+    let program = create_buffer(vec![0x60, 0x01, 0x61, 0x02, 0x62, 0x03]);
+    let mut emulator = Emulator::new();
+    emulator.load(&program);
+
+    emulator.run(None);
+    assert!(
+        emulator.registers[0].v == 0x01,
+        "V0 should be 0x1 after opcode 0x6001"
+    );
+    assert!(
+        emulator.registers[1].v == 0x00,
+        "V1 should be 0x0 after opcode 0x6102"
+    );
+    emulator.run(None);
+    emulator.run(None);
+    assert!(
+        emulator.registers[2].v == 0x03,
+        "V2 should be 0x3 after opcode 0x6203"
+    );
+}
