@@ -151,3 +151,30 @@ fn test_opcode_6_x_nn() {
         "V2 should be 0x3 after opcode 0x6203"
     );
 }
+
+#[test]
+fn test_opcode_7_x_nn() {
+    // test 7XNN opcode (set Vx = Vx + NN)
+    let program = create_buffer(vec![0x70, 0x02, 0x70, 0xFF]);
+    let mut emulator = Emulator::new();
+    emulator.load(&program);
+
+    assert!(
+        emulator.registers[0].v == 0x00,
+        "V0 should be 0x0 before opcode 0x7002"
+    );
+    emulator.run(None);
+    assert!(
+        emulator.registers[0].v == 0x02,
+        "V0 should be 0x2 after opcode 0x7002"
+    );
+    emulator.run(None);
+    assert!(
+        emulator.registers[0].v == 0x01,
+        "V1 should be 0x1 after opcode 0x71FF"
+    );
+    assert!(
+        emulator.registers[0xF].v == 0x00,
+        "VF should be 0x0 after opcode 0x71FF"
+    )
+}

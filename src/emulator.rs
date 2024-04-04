@@ -267,7 +267,7 @@ impl Emulator {
             }
             0x7 => {
                 // add nn to Vx
-                let _ = self.registers[self.x as usize]
+                self.registers[self.x as usize].v = self.registers[self.x as usize]
                     .v
                     .wrapping_add(self.nn as u8);
             }
