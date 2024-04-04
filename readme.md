@@ -29,6 +29,8 @@ It's still WIP.
 
 ![Screenshot of the Chip8 Emulator](https://github.com/chc0815/chip8/blob/master/media/chip8.png?raw=true)
 
+![Screenshot of the Chip8 Emulator running Fishie](https://github.com/chc0815/chip8/blob/master/media/fishie.png?raw=true)
+
 ## Getting Started
 
 ### Requirements
