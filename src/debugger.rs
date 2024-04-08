@@ -78,6 +78,7 @@ fn handle_loop(
     false
 }
 
+#[derive(Debug, Eq, PartialEq)]
 enum State {
     Running(Option<u32>),
     Paused,
@@ -104,10 +105,22 @@ impl Debugger {
         event_pump: &mut sdl2::EventPump,
         timer: &sdl2::TimerSubsystem,
     ) {
+        let mut skip = false;
         self.state = State::Paused;
         loop {
             if handle_loop(event_pump, timer, emulator) {
                 break;
+            }
+            if !skip
+                && self.state != State::HitBreackpoint
+                && self.state != State::Paused
+                && self.state != State::Stopped
+            {
+                if self.breakpoints.contains(&(emulator.pc as u16)) {
+                    self.state = State::HitBreackpoint;
+                }
+            } else {
+                skip = false;
             }
             match self.state {
                 State::Running(None) => {
@@ -134,11 +147,20 @@ impl Debugger {
                         's' => {
                             let n = input[1..].trim().parse::<u32>().unwrap_or(1);
                             self.state = State::Running(Some(n));
+                            skip = true;
                         }
                         'c' => {
                             self.state = State::Running(None);
+                            skip = true;
                         }
-                        'b' => {}
+                        'b' => {
+                            let addr = u16::from_str_radix(input[1..].trim(), 16);
+                            if let Ok(addr) = addr {
+                                self.breakpoints.push(addr);
+                            } else {
+                                println!("Invalid address");
+                            }
+                        }
                         'q' => {
                             self.state = State::Stopped;
                         }
