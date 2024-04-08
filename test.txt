@@ -1,0 +1,21 @@
+   Compiling chip8 v0.1.0 (/Users/mac04/Documents/Programming/chip8)
+warning: variants `Running` and `HitBreackpoint` are never constructed
+ --> src/debugger.rs:4:5
+  |
+3 | enum State {
+  |      ----- variants in this enum
+4 |     Running,
+  |     ^^^^^^^
+5 |     Paused,
+6 |     HitBreackpoint,
+  |     ^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` on by default
+
+warning: `chip8` (lib) generated 1 warning
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.86s
+     Running `target/debug/chip8 emu roms/6-keypad.ch8`
+Emulating: roms/6-keypad.ch8
+thread 'main' panicked at src/emulator.rs:452:17:
+Unknown instruction: 0xe49e at 0x0246
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

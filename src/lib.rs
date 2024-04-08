@@ -2,6 +2,7 @@ use consts::FONT_BASE_ADDRESS;
 use font::FONT;
 
 pub mod consts;
+pub mod debugger;
 pub mod disassembler;
 pub mod emulator;
 pub mod font;

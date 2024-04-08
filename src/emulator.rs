@@ -26,7 +26,7 @@ pub struct KeyState {
     pub key: Option<u8>,
 }
 
-fn find_sdl_gl_driver() -> Option<u32> {
+pub fn find_sdl_gl_driver() -> Option<u32> {
     for (index, item) in sdl2::render::drivers().enumerate() {
         if item.name == "opengl" {
             return Some(index as u32);
@@ -108,7 +108,7 @@ pub struct Register {
 }
 
 pub struct Display {
-    canvas: Canvas<Window>,
+    pub canvas: Canvas<Window>,
 }
 
 impl Display {
@@ -151,21 +151,21 @@ impl Display {
 
 pub struct Emulator {
     pub memory: [u8; 4096],
-    graphics: Graphics,
-    key_buffer: KeyState,
+    pub graphics: Graphics,
+    pub key_buffer: KeyState,
     pub pc: usize,
     pub stack: Vec<u16>,
     pub registers: [Register; 16],
     pub index: u16,
-    instruction: u16,
-    instr: u16,
-    x: u16,
-    y: u16,
-    n: u16,
-    nn: u16,
-    nnn: u16,
-    delay_timer: u16,
-    sound_timer: u16,
+    pub instruction: u16,
+    pub instr: u16,
+    pub x: u16,
+    pub y: u16,
+    pub n: u16,
+    pub nn: u16,
+    pub nnn: u16,
+    pub delay_timer: u16,
+    pub sound_timer: u16,
 }
 impl Default for Emulator {
     fn default() -> Self {

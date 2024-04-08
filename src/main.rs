@@ -4,7 +4,7 @@ use std::{
     io::Read,
 };
 
-use chip8::{disassembler, emulator, prep_buffer};
+use chip8::{debugger, disassembler, emulator, prep_buffer};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -37,6 +37,10 @@ fn main() {
                 "emu" => {
                     println!("Emulating: {}", what);
                     emulator::emulate(&buffer);
+                }
+                "dbg" => {
+                    println!("Debugging: {}", what);
+                    debugger::debug(&buffer);
                 }
                 _ => println!("Unknown command"),
             }
