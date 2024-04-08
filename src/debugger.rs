@@ -1,4 +1,4 @@
-use std::io::Write;
+use std::{io::Write, ops::Index};
 
 use sdl2::{event::Event, keyboard::Keycode};
 
@@ -87,12 +87,14 @@ enum State {
 
 pub struct Debugger {
     state: State,
+    breakpoints: Vec<u16>,
 }
 
 impl Debugger {
     pub fn new() -> Debugger {
         Debugger {
             state: State::Stopped,
+            breakpoints: Vec::new(),
         }
     }
     pub fn attach(
@@ -124,14 +126,20 @@ impl Debugger {
                     let mut input = String::new();
                     std::io::stdin().read_line(&mut input).unwrap();
                     let input = input.trim();
-                    match input {
-                        "s" => {
-                            self.state = State::Running(Some(1));
+                    if input.is_empty() {
+                        continue;
+                    }
+                    let cmd = input.chars().next().unwrap();
+                    match cmd {
+                        's' => {
+                            let n = input[1..].trim().parse::<u32>().unwrap_or(1);
+                            self.state = State::Running(Some(n));
                         }
-                        "c" => {
+                        'c' => {
                             self.state = State::Running(None);
                         }
-                        "q" => {
+                        'b' => {}
+                        'q' => {
                             self.state = State::Stopped;
                         }
                         _ => {
