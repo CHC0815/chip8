@@ -1,4 +1,4 @@
-use std::{io::Write, ops::Index};
+use std::io::Write;
 
 use sdl2::{event::Event, keyboard::Keycode};
 
@@ -27,11 +27,10 @@ pub fn debug(program: &[u8]) {
 }
 fn handle_loop(
     event_pump: &mut sdl2::EventPump,
-    timer: &sdl2::TimerSubsystem,
+    _timer: &sdl2::TimerSubsystem,
     emulator: &mut Emulator,
 ) -> bool {
-    let mut before;
-    let mut next: u64 = 0;
+    let _next: u64 = 0;
     for event in event_pump.poll_iter() {
         match event {
             Event::Quit { .. }
@@ -63,17 +62,6 @@ fn handle_loop(
             }
             _ => {}
         }
-    }
-    before = timer.ticks64();
-    if before >= next {
-        if emulator.delay_timer > 0 {
-            println!("Delay timer: {}", emulator.delay_timer);
-            emulator.delay_timer -= 1;
-        }
-        if emulator.sound_timer > 0 {
-            emulator.sound_timer -= 1;
-        }
-        next = before + 1000 / 60;
     }
     false
 }
@@ -160,6 +148,14 @@ impl Debugger {
                             } else {
                                 println!("Invalid address");
                             }
+                        }
+                        'h' => {
+                            println!("--------------- HELP ---------------");
+                            println!("s        - step for 1 instruction");
+                            println!("s [n]    - step for n instructions");
+                            println!("b [addr] - add breakpoint at addr");
+                            println!("c        - continue");
+                            println!("q        - quit");
                         }
                         'q' => {
                             self.state = State::Stopped;
