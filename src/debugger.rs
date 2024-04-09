@@ -149,11 +149,26 @@ impl Debugger {
                                 println!("Invalid address");
                             }
                         }
+                        'd' => {
+                            let addr = u16::from_str_radix(input[1..].trim(), 16);
+                            if let Ok(addr) = addr {
+                                self.breakpoints.retain(|&x| x != addr);
+                            } else {
+                                println!("Invalid address");
+                            }
+                        }
+                        'l' => {
+                            for (i, &addr) in self.breakpoints.iter().enumerate() {
+                                println!("{}: 0x{:x}", i, addr);
+                            }
+                        }
                         'h' => {
                             println!("--------------- HELP ---------------");
                             println!("s        - step for 1 instruction");
                             println!("s [n]    - step for n instructions");
                             println!("b [addr] - add breakpoint at addr");
+                            println!("d [addr] - delete breakpoint at addr");
+                            println!("l        - list breakpoints");
                             println!("c        - continue");
                             println!("q        - quit");
                         }
