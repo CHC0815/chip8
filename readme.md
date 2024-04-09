@@ -51,7 +51,7 @@ cd chip8
 RUN:
 
 ```sh
-cargo run -- (emu|dis) (path to rom)
+cargo run -- (emu|dis|dbg) (path to rom)
 ```
 
 BUILD:
