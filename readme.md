@@ -76,6 +76,15 @@ chip8 emu rom.ch8
 chip8 dis rom.ch8
 ```
 
+### Debug a ROM
+
+```sh
+chip8 dbg rom.ch8
+```
+
+For help on how to use the debugger. Enter h in the debugger.
+
+
 ## ROMs
 
 Most of the roms are from [https://github.com/Timendus/chip8-test-suite](https://github.com/Timendus/chip8-test-suite)
