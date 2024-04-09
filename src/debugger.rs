@@ -162,6 +162,39 @@ impl Debugger {
                                 println!("{}: 0x{:x}", i, addr);
                             }
                         }
+                        'p' => {
+                            println!("PC: 0x{:X}", emulator.pc);
+                            println!("I:  0x{:X}", emulator.index);
+                            println!(
+                                "V0: 0x{:X} V1: 0x{:X} V2: 0x{:X} V3: 0x{:X}",
+                                emulator.registers[0].v,
+                                emulator.registers[1].v,
+                                emulator.registers[2].v,
+                                emulator.registers[3].v
+                            );
+                            println!(
+                                "V4: 0x{:X} V5: 0x{:X} V6: 0x{:X} V7: 0x{:X}",
+                                emulator.registers[4].v,
+                                emulator.registers[5].v,
+                                emulator.registers[6].v,
+                                emulator.registers[7].v
+                            );
+                            println!(
+                                "V8: 0x{:X} V9: 0x{:X} VA: 0x{:X} VB: 0x{:X}",
+                                emulator.registers[8].v,
+                                emulator.registers[9].v,
+                                emulator.registers[0xA].v,
+                                emulator.registers[0xB].v
+                            );
+                            println!(
+                                "VC: 0x{:X} VD: 0x{:X} VE: 0x{:X} VF: 0x{:X}",
+                                emulator.registers[0xC].v,
+                                emulator.registers[0xD].v,
+                                emulator.registers[0xE].v,
+                                emulator.registers[0xF].v
+                            );
+                            println!("Stack: {:?}", emulator.stack);
+                        }
                         'h' => {
                             println!("--------------- HELP ---------------");
                             println!("s        - step for 1 instruction");
@@ -169,6 +202,7 @@ impl Debugger {
                             println!("b [addr] - add breakpoint at addr");
                             println!("d [addr] - delete breakpoint at addr");
                             println!("l        - list breakpoints");
+                            println!("p        - print registers and memory");
                             println!("c        - continue");
                             println!("q        - quit");
                         }
