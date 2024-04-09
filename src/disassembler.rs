@@ -4,7 +4,7 @@ pub fn disassemble(program: &[u8]) {
     disassembler.disassemble();
 }
 
-struct Disassembler {
+pub struct Disassembler {
     pub memory: [u8; 4096],
 }
 
@@ -29,7 +29,7 @@ impl Disassembler {
             );
         }
     }
-    fn disassemble_opcode(&self, opcode: u16) -> String {
+    pub fn disassemble_opcode(&self, opcode: u16) -> String {
         let instr = (opcode & 0xF000) >> 12;
         let x = (opcode & 0x0F00) >> 8;
         let y = (opcode & 0x00F0) >> 4;

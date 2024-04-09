@@ -4,6 +4,7 @@ use sdl2::{event::Event, keyboard::Keycode};
 
 use crate::{
     consts::KEYS,
+    disassembler::Disassembler,
     emulator::{Display, Emulator},
 };
 
@@ -195,14 +196,31 @@ impl Debugger {
                             );
                             println!("Stack: {:?}", emulator.stack);
                         }
+                        'x' => {
+                            let addr = u16::from_str_radix(input[1..].trim(), 16);
+                            if let Ok(addr) = addr {
+                                if addr >= 4096 {
+                                    println!("Invalid address");
+                                    continue;
+                                }
+                                let dis = Disassembler::new();
+                                let opcode = u16::from(emulator.memory[addr as usize]) << 8
+                                    | u16::from(emulator.memory[(addr + 1) as usize]);
+
+                                println!("{}", dis.disassemble_opcode(opcode));
+                            } else {
+                                println!("Invalid address");
+                            }
+                        }
                         'h' => {
-                            println!("--------------- HELP ---------------");
+                            println!("------------------- HELP -------------------");
                             println!("s        - step for 1 instruction");
                             println!("s [n]    - step for n instructions");
                             println!("b [addr] - add breakpoint at addr");
                             println!("d [addr] - delete breakpoint at addr");
                             println!("l        - list breakpoints");
                             println!("p        - print registers and memory");
+                            println!("x [addr] - disassemble instruction at addr");
                             println!("c        - continue");
                             println!("q        - quit");
                         }
